@@ -87,13 +87,17 @@ class FeatureContext extends BehatContext
 		$properties = explode( "\n", (string)$properties_string );
 		foreach ( $properties as $property )
 		{
-			$this->thePropertyExists( $property );
+			$this->thePropertyExist( $property );
 		}
 	}
 
-	protected function thePropertyExists( $property )
+	/**
+	 * @Given /^the property "([^"]*)" exist$/
+	 */
+	public function thePropertyExist( $property )
 	{
-		$response = $this->getResponseInJson();
+		$response = $this->arrayGet( $this->getResponseInJson(), $property );
+		$property = $this->getScopedProperty( $property );
 
 		assertTrue( array_key_exists( $property, $response ), 'Property ' . $property . ' does not exists in the response' );
 	}
@@ -123,10 +127,6 @@ class FeatureContext extends BehatContext
 
 		assertSame( $value, $response[$property], $property . ' has no value: ' . $value );
 	}
-
-
-
-
 
 	protected function propertyIsOfType( $type, $property )
 	{
@@ -168,5 +168,60 @@ class FeatureContext extends BehatContext
 		}
 
 		return $this->response;
+	}
+
+	/**
+	 * Get an item from an array using "dot" notation.
+	 *
+	 * @copyright   Taylor Otwell
+	 * @link        http://laravel.com/docs/helpers
+	 * @param       array   $array
+	 * @param       string  $key
+	 * @return      mixed
+	 */
+	protected function arrayGet( $array, $key )
+	{
+		if ( strpos( $key, '.') === false )
+		{
+			return $array;
+		}
+
+		if ( is_null($key) )
+		{
+			return $array;
+		}
+
+		$scopes = explode( '.', $key );
+
+		// Remove the last element, we don't want to get there.
+		array_pop( $scopes );
+
+		foreach ( $scopes as $segment )
+		{
+			if ( is_array( $array ) )
+			{
+				if ( !array_key_exists( $segment, $array ) )
+				{
+					return;
+				}
+
+				$array = $array[$segment];
+			}
+		}
+
+		return $array;
+	}
+
+	/**
+	 * Gets the property name for a scoped key.
+	 *
+	 * @param  string $property The property name: id or level1.level2.id
+	 * @return string           The last property in the string.
+	 */
+	protected function getScopedProperty( $property )
+	{
+		$scopes = explode( '.', $property );
+
+		return array_pop( $scopes );
 	}
 }

@@ -14,6 +14,7 @@ Scenario: Retrieve a specific partner
     active
     _links
     """
+    And the property "_links.self.href" exist
     And the "id_partner" property is an integer
     And the "active" property is a boolean
 
