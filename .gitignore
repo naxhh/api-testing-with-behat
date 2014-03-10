@@ -1,0 +1,14 @@
+# Core3 folders.
+backend/
+docs/
+htdocs/
+instances/
+locale/
+test/extra_testing/
+test/PHPUnit/
+test/JSUnitTesting/
+.svn/
+
+# Things we don't really want.
+vendor/
+composer.phar
