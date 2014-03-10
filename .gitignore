@@ -11,4 +11,5 @@ test/JSUnitTesting/
 
 # Things we don't really want.
 vendor/
+bin/
 composer.phar

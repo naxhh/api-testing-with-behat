@@ -1,7 +1,7 @@
 Feature: Redirection partner GET.
 
 Scenario: Retrieve a specific partner
-    When I request "GET /es/redirection/Documentation"
+    When I request "GET /es/redirections/Documentation"
     Then I get a "200" response
     And the properties exist:
     """
@@ -14,12 +14,12 @@ Scenario: Retrieve a specific partner
     active
     _links
     """
-    And the "id" property is an integer
+    And the "id_partner" property is an integer
     And the "active" property is a boolean
 
 Scenario: Retrieve not existing partner
-    When I request "GET /es/redirection/NaNaNaNaNaNaLideeer"
-    Then I get a "400" response
+    When I request "GET /es/redirections/NaNaNaNaNaNaLideeer"
+    Then I get a "404" response
     And the properties exist:
     """
     error

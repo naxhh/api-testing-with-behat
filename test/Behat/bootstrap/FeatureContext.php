@@ -1,44 +1,172 @@
 <?php
 
 use Behat\Behat\Context\ClosuredContextInterface,
-    Behat\Behat\Context\TranslatedContextInterface,
-    Behat\Behat\Context\BehatContext,
-    Behat\Behat\Exception\PendingException;
+	Behat\Behat\Context\TranslatedContextInterface,
+	Behat\Behat\Context\BehatContext,
+	Behat\Behat\Exception\PendingException;
 use Behat\Gherkin\Node\PyStringNode,
-    Behat\Gherkin\Node\TableNode;
+	Behat\Gherkin\Node\TableNode;
 
-//
-// Require 3rd-party libraries here:
-//
-//   require_once 'PHPUnit/Autoload.php';
-//   require_once 'PHPUnit/Framework/Assert/Functions.php';
-//
+use Guzzle\Service\Client,
+	Guzzle\Http\Exception\BadResponseException;
+
+require_once __DIR__.'/../../../vendor/phpunit/phpunit/PHPUnit/Autoload.php';
+require_once __DIR__.'/../../../vendor/phpunit/phpunit/PHPUnit/Framework/Assert/Functions.php';
 
 /**
  * Features context.
  */
 class FeatureContext extends BehatContext
 {
-    /**
-     * Initializes context.
-     * Every scenario gets it's own context object.
-     *
-     * @param array $parameters context parameters (set them up through behat.yml)
-     */
-    public function __construct(array $parameters)
-    {
-        // Initialize your context here
-    }
+	/**
+	 * The HTTP Client.
+	 *
+	 * @var Guzzle\Service\Client
+	 */
+	protected $client;
 
-//
-// Place your definition and hook methods here:
-//
-//    /**
-//     * @Given /^I have done something with "([^"]*)"$/
-//     */
-//    public function iHaveDoneSomethingWith($argument)
-//    {
-//        doSomethingWith($argument);
-//    }
-//
+	/**
+	 * The response given from the resource.
+	 */
+	protected $response;
+
+	protected $json_response;
+
+	/**
+	 * Initializes context.
+	 * Every scenario gets it's own context object.
+	 *
+	 * @param array $parameters context parameters (set them up through behat.yml)
+	 */
+	public function __construct( array $parameters )
+	{
+		$this->client = new Client( $parameters['base_url'] );
+	}
+
+	/**
+	 * @When /^I request "(GET|PUT|POST|DELETE) ([^"]*)"$/
+	 */
+	public function iRequest( $http_method, $resource )
+	{
+		$method = strtolower( $http_method );
+		$format = '.json';
+
+		try
+		{
+			$this->response = $this->client->$method( $resource . $format )->send();
+		}
+		catch ( BadResponseException $e )
+		{
+			$response = $e->getResponse();
+
+			// Sometimes there is not response at all. Guzzle will tell what is happening :D
+			if ( $response === null )
+			{
+				throw $e;
+			}
+
+			$this->response = $response;
+		}
+	}
+
+	/**
+	 * @Then /^I get a "([^"]*)" response$/
+	 */
+	public function iGetAResponse( $status_code )
+	{
+		$response = $this->getResponse();
+
+		assertSame( (int)$status_code, (int)$response->getStatusCode(), $response->getBody() );
+	}
+
+	/**
+	 * @Given /^the properties exist:$/
+	 */
+	public function thePropertiesExist( PyStringNode $properties_string )
+	{
+		$properties = explode( "\n", (string)$properties_string );
+		foreach ( $properties as $property )
+		{
+			$this->thePropertyExists( $property );
+		}
+	}
+
+	protected function thePropertyExists( $property )
+	{
+		$response = $this->getResponseInJson();
+
+		assertTrue( array_key_exists( $property, $response ), 'Property ' . $property . ' does not exists in the response' );
+	}
+
+	/**
+	 * @Given /^the "([^"]*)" property is an integer$/
+	 */
+	public function thePropertyIsAnInteger( $property )
+	{
+		$this->propertyIsOfType( 'int', $property );
+	}
+
+	/**
+	 * @Given /^the "([^"]*)" property is a boolean$/
+	 */
+	public function thePropertyIsABoolean( $property )
+	{
+		$this->propertyIsOfType( 'boolean', $property );
+	}
+
+	/**
+	 * @Given /^the "([^"]*)" property value is "([^"]*)"$/
+	 */
+	public function thePropertyValueIs( $property, $value )
+	{
+		$response = $this->getResponseInJson();
+
+		assertSame( $value, $response[$property], $property . ' has no value: ' . $value );
+	}
+
+
+
+
+
+	protected function propertyIsOfType( $type, $property )
+	{
+		$response = $this->getResponseInJson();
+
+		isType( $type, $response[$property], 'The property ' . $property . ' is not of the type: ' . $type );
+
+	}
+
+	protected function getResponseInJson()
+	{
+		if ( $this->json_response )
+		{
+			return $this->json_response;
+		}
+
+		$response = $this->getResponse();
+
+		$json = json_decode( $this->getResponse()->getBody( true ), true );
+
+		if (json_last_error() !== JSON_ERROR_NONE)
+		{
+			throw new Exception( "Failed to parse JSON, error: " . json_last_error() );
+		}
+
+		$this->json_response = $json;
+
+		return $this->json_response;
+	}
+
+	/**
+	 * Gets the response content and checks for some coding errors.
+	 */
+	protected function getResponse()
+	{
+		if ( !$this->response )
+		{
+			throw new Exception( 'You must ask for a request first! asshole' );
+		}
+
+		return $this->response;
+	}
 }

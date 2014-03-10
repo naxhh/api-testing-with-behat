@@ -1,9 +1,12 @@
 {
 	"require": {
-		"behat/behat" : "2.4.*@stable"
+		"behat/behat": "2.4.*@stable"
 	},
-
 	"config": {
 		"bin-dir": "bin/"
+	},
+	"require-dev": {
+		"guzzle/guzzle": "~3.7",
+		"phpunit/phpunit": "3.7.*"
 	}
 }
