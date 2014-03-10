@@ -2,3 +2,6 @@ default:
     paths:
         features: '%behat.paths.base%/test/Behat'
         bootstrap: '%behat.paths.features%'
+    context:
+        parameters:
+            base_url: http://partners.api.softonic.com
